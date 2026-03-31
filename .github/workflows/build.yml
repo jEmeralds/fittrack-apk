@@ -6,25 +6,38 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - uses: actions/setup-java@v3
+      - uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      - uses: actions/setup-node@v3
-        with:
-          node-version: '18'
+      - name: Generate keystore
+        run: |
+          keytool -genkeypair -v \
+            -keystore fittrack.keystore \
+            -alias fittrack \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass fittrack123 \
+            -keypass fittrack123 \
+            -dname "CN=FitTrack, OU=App, O=FitTrack, L=Nairobi, S=Nairobi, C=KE"
 
-      - name: Install Bubblewrap
-        run: npm install -g @bubblewrap/cli
+      - name: Build with Bubblewrap non-interactive
+        run: |
+          npm install -g @bubblewrap/cli@latest
+          bubblewrap build \
+            --skipPwaValidation \
+            --signingKeyPath ./fittrack.keystore \
+            --signingKeyAlias fittrack \
+            --ksPass fittrack123 \
+            --keyPass fittrack123
 
-      - name: Generate Android project from twa-manifest
-        run: bubblewrap build --skipPwaValidation
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: fittrack-apk
-          path: app/build/outputs/apk/release/*.apk
+          path: |
+            app/build/outputs/apk/release/*.apk
+            app/build/outputs/bundle/release/*.aab
