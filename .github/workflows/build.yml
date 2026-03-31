@@ -23,13 +23,22 @@ jobs:
             -storepass fittrack123 -keypass fittrack123 \
             -dname "CN=FitTrack,O=FitTrack,C=KE"
 
-      - name: Build APK
+      - name: Install Gradle 8.1.1
         run: |
-          gradle wrapper --gradle-version 8.1.1
+          curl -s https://services.gradle.org/distributions/gradle-8.1.1-bin.zip -o gradle.zip
+          unzip -q gradle.zip -d /opt/gradle
+          export PATH=$PATH:/opt/gradle/gradle-8.1.1/bin
+          echo "/opt/gradle/gradle-8.1.1/bin" >> $GITHUB_PATH
+
+      - name: Generate wrapper
+        run: |
+          gradle wrapper --gradle-version=8.1.1 --distribution-type=bin
           chmod +x gradlew
-          ./gradlew :app:assembleRelease --no-daemon
+
+      - name: Build APK
+        run: ./gradlew :app:assembleRelease --no-daemon
         env:
-          GRADLE_OPTS: -Xmx512m
+          GRADLE_OPTS: -Xmx512m -Dorg.gradle.daemon=false
 
       - uses: actions/upload-artifact@v4
         with:
