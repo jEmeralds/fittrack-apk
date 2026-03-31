@@ -13,31 +13,34 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
       - name: Generate keystore
         run: |
           keytool -genkeypair -v \
-            -keystore fittrack.keystore \
+            -keystore app/fittrack.keystore \
             -alias fittrack \
-            -keyalg RSA \
-            -keysize 2048 \
-            -validity 10000 \
-            -storepass fittrack123 \
-            -keypass fittrack123 \
-            -dname "CN=FitTrack, OU=App, O=FitTrack, L=Nairobi, S=Nairobi, C=KE"
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass fittrack123 -keypass fittrack123 \
+            -dname "CN=FitTrack,O=FitTrack,C=KE"
 
-      - name: Build with Bubblewrap non-interactive
+      - name: Create signing config
         run: |
-          npm install -g @bubblewrap/cli@latest
-          bubblewrap build \
-            --skipPwaValidation \
-            --signingKeyPath ./fittrack.keystore \
-            --signingKeyAlias fittrack \
-            --ksPass fittrack123 \
-            --keyPass fittrack123
+          cat >> gradle.properties << 'EOF'
+          STORE_FILE=fittrack.keystore
+          STORE_PASSWORD=fittrack123
+          KEY_ALIAS=fittrack
+          KEY_PASSWORD=fittrack123
+          EOF
+
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
+      - name: Build release APK
+        run: ./gradlew assembleRelease
 
       - uses: actions/upload-artifact@v4
         with:
           name: fittrack-apk
-          path: |
-            app/build/outputs/apk/release/*.apk
-            app/build/outputs/bundle/release/*.aab
+          path: app/build/outputs/apk/release/*.apk
